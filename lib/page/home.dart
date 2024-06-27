@@ -12,6 +12,7 @@ import '../database/game.dart';
 import 'accountpage.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
+import 'package:quickalert/quickalert.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -357,7 +358,7 @@ class _HomeState extends State<Home> {
                       name: 'Game',
                       decoration: const InputDecoration(
                           // labelText: 'Cari Game',
-                          hintText: 'Cari Game',
+                          hintText: 'Search Game',
                           suffixIcon: Icon(Icons.search)),
                       onChanged: (value) {
                         _searchByName(gameController.text);
@@ -428,12 +429,24 @@ class _HomeState extends State<Home> {
                                       ),
                                     ),
                                     IconButton(
-                                      onPressed: () async {
-                                        await File(game['photo']).delete();
-                                        await databasehelper
-                                            .deleteGame(game['id']);
-                                        await _getAllGames();
-                                        notif('Delete game');
+                                      onPressed: () {
+                                        QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.confirm,
+                                            title: 'Delete Game',
+                                            confirmBtnText: 'Yes',
+                                            cancelBtnText: 'No',
+                                            onConfirmBtnTap: () async {
+                                              await File(game['photo'])
+                                                  .delete();
+                                              await databasehelper
+                                                  .deleteGame(game['id']);
+                                              await _getAllGames();
+                                              Navigator.pop(context);
+                                              notif('Delete game');
+                                            },
+                                            text:
+                                                'Delete all account in ${game['name']}');
                                       },
                                       icon: const Icon(Icons.delete),
                                     ),

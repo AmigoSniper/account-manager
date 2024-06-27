@@ -8,6 +8,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import '../database/databasehelper.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../constrant.dart';
+import 'package:quickalert/quickalert.dart';
 
 import 'package:flutter/material.dart';
 
@@ -40,6 +41,7 @@ class _AccountpageState extends State<Accountpage> {
   late String imagePath;
   List<Map<String, dynamic>> allAccount = [];
   List<Map<String, dynamic>> _foundAccount = [];
+  late bool _passwordVisible;
 
   void _sortAccountByName() {
     allAccount.sort((a, b) {
@@ -84,6 +86,10 @@ class _AccountpageState extends State<Accountpage> {
     deskripsiController.clear();
   }
 
+  String getPasswordLength(String pass) {
+    return '🗿' * pass.length;
+  }
+
   void addAccount() {
     showDialog(
       context: context,
@@ -103,10 +109,10 @@ class _AccountpageState extends State<Accountpage> {
                       const SizedBox(height: 10),
                       FormBuilderTextField(
                         controller: nameController,
-                        name: 'Nama',
+                        name: 'Name',
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Nama',
+                          labelText: 'Name',
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -131,6 +137,8 @@ class _AccountpageState extends State<Accountpage> {
                       FormBuilderTextField(
                         controller: deskripsiController,
                         name: 'Deskripsi',
+                        maxLines: null,
+                        minLines: 3,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           labelText: 'Deskripsi',
@@ -199,10 +207,10 @@ class _AccountpageState extends State<Accountpage> {
                       const SizedBox(height: 10),
                       FormBuilderTextField(
                         controller: nameEdit,
-                        name: 'Nama',
+                        name: 'Name',
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Nama',
+                          labelText: 'Name',
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -227,6 +235,8 @@ class _AccountpageState extends State<Accountpage> {
                       FormBuilderTextField(
                         controller: deskripsiEdit,
                         name: 'Deskripsi',
+                        maxLines: null,
+                        minLines: 3,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           labelText: 'Deskripsi',
@@ -272,6 +282,7 @@ class _AccountpageState extends State<Accountpage> {
   void initState() {
     super.initState();
     _getAllAccounts();
+    _passwordVisible = false;
   }
 
   void copyNotif(String notif) {
@@ -353,7 +364,7 @@ class _AccountpageState extends State<Accountpage> {
                     child: SearchBar(
                       controller: accountSearch,
                       leading: const Icon(Icons.search),
-                      hintText: "Cari Account",
+                      hintText: "Search Account",
                       onChanged: (value) =>
                           {_searchByAccount(accountSearch.text)},
                       trailing: <Widget>[
@@ -389,7 +400,7 @@ class _AccountpageState extends State<Accountpage> {
                       children: <Widget>[
                         ListTile(
                           leading: const Icon(Icons.person),
-                          title: Text('Nama: ${account['name']}'),
+                          title: Text('Name: ${account['name']}'),
                         ),
                         ListTile(
                           leading: const Icon(Icons.circle),
@@ -400,28 +411,31 @@ class _AccountpageState extends State<Accountpage> {
                             copyNotif("Username");
                           },
                         ),
-                        ListTile(
-                          leading: const Icon(Icons.lock),
-                          title: Text('Password: ${account['password']}'),
-                          onTap: () {
-                            Clipboard.setData(
-                                ClipboardData(text: account['password']));
-                            copyNotif("Password");
-                          },
-                        ),
+                        _PasswordSecret(Password: account['password']),
                         ExpandableListTile(
-                          description: 'Deskripsi: ${account['deskripsi']}',
+                          description: 'Description: ${account['deskripsi']}',
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: <Widget>[
                             IconButton(
-                              onPressed: () async {
-                                print(account['id']);
-                                await databasehelper
-                                    .deleteAccount(account['id']);
-                                await _getAllAccounts();
-                                accountNotif('deleted');
+                              onPressed: () {
+                                QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.confirm,
+                                    title: 'Delete Account',
+                                    confirmBtnText: 'Yes',
+                                    cancelBtnText: 'No',
+                                    onConfirmBtnTap: () async {
+                                      print(account['id']);
+                                      await databasehelper
+                                          .deleteAccount(account['id']);
+                                      await _getAllAccounts();
+                                      accountNotif('deleted');
+                                      Navigator.pop(context);
+                                    },
+                                    text:
+                                        'Delete account ${account['name']} from ${widget.GameName}');
                               },
                               icon: const Icon(Icons.delete),
                             ),
@@ -457,6 +471,7 @@ class ExpandableListTile extends StatefulWidget {
   const ExpandableListTile({super.key, required this.description});
 
   @override
+  // ignore: library_private_types_in_public_api
   _ExpandableListTileState createState() => _ExpandableListTileState();
 }
 
@@ -477,6 +492,56 @@ class _ExpandableListTileState extends State<ExpandableListTile> {
           widget.description,
           overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
         ),
+      ),
+    );
+  }
+}
+
+class _PasswordSecret extends StatefulWidget {
+  final String Password;
+  const _PasswordSecret({super.key, required this.Password});
+
+  @override
+  State<_PasswordSecret> createState() => __PasswordSecretState();
+}
+
+class __PasswordSecretState extends State<_PasswordSecret> {
+  bool _isSecret = false;
+
+  void copyNotif(String notif) {
+    showTopSnackBar(Overlay.of(context),
+        CustomSnackBar.success(message: "$notif has been copied"));
+  }
+
+  String getPasswordLength(String pass) {
+    return '🗿' * pass.length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.lock),
+      title: Text(
+          'Password: ${_isSecret ? widget.Password : getPasswordLength(widget.Password)}'),
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: widget.Password));
+        copyNotif("Password");
+      },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _isSecret = !_isSecret;
+              });
+            },
+            icon: Icon(
+                // Based on passwordVisible state choose the icon
+                _isSecret ? Icons.visibility : Icons.visibility_off),
+          )
+        ],
       ),
     );
   }
